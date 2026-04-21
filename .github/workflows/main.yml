@@ -1,0 +1,28 @@
+name: Run V2Ray Server
+
+on:
+  workflow_dispatch:
+
+jobs:
+  v2ray:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup V2Ray
+        run: |
+          curl -L https://github.com/v2fly/v2ray-core/releases/latest/download/v2ray-linux-64.zip -o v2ray.zip
+          unzip v2ray.zip -d v2ray
+          chmod +x v2ray/v2ray
+
+      - name: Setup Cloudflared
+        run: |
+          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
+          chmod +x cloudflared
+          sudo mv cloudflared /usr/local/bin/
+
+      - name: Run V2Ray and Create Tunnel
+        run: |
+          ./v2ray/v2ray run -c config.json &
+          sleep 3
+          cloudflared tunnel --url http://localhost:8080 --no-autoupdate
