@@ -1,10 +1,10 @@
-name: Run V2Ray Server
+name: VLESS Reality Server
 
 on:
   workflow_dispatch:
 
 jobs:
-  v2ray:
+  vless:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,4 +25,26 @@ jobs:
         run: |
           ./v2ray/v2ray run -c config.json &
           sleep 3
-          cloudflared tunnel --url http://localhost:8080 --no-autoupdate
+          cloudflared tunnel --url https://localhost:8080 --no-autoupdate --no-tls-verify 2>&1 | tee cloudflared.log &
+
+      - name: Generate VLESS Link
+        run: |
+          echo "Waiting for Cloudflare tunnel to be ready..."
+          sleep 10
+          
+          TUNNEL_URL=$(grep -o 'https://[a-zA-Z0-9.-]*\.trycloudflare\.com' cloudflared.log | head -1)
+          
+          if [ -z "$TUNNEL_URL" ]; then
+            echo "Error: Could not extract tunnel URL."
+            exit 1
+          fi
+          
+          CLEAN_HOST=${TUNNEL_URL#https://}
+          UUID="b831381d-6324-4d53-ad4f-8cda48b30811"
+          
+          VLESS_LINK="vless://$UUID@$CLEAN_HOST:443?encryption=none&security=reality&sni=www.microsoft.com&fp=chrome&type=ws&path=/&flow=xtls-rprx-vision&pbk=OJpBcvjyCpPm7CkCOGt9G5w7Xp1s3LqY&sid=6ba85179e30d4fc2#GitHub-VLESS-Reality"
+          
+          echo "=============================================================="
+          echo "✅ YOUR VLESS LINK (Copy and Import this):"
+          echo "$VLESS_LINK"
+          echo "=============================================================="
