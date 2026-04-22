@@ -1,0 +1,37 @@
+name: SSH Tunnel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ssh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH Server
+        run: |
+          sudo apt update
+          sudo apt install -y openssh-server
+          echo "root:123456" | sudo chpasswd
+          sudo sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+          sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+          sudo service ssh restart
+          echo "✅ SSH Server is ready."
+          
+      - name: Setup Cloudflared
+        run: |
+          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
+          chmod +x cloudflared
+          sudo mv cloudflared /usr/local/bin/
+          echo "✅ Cloudflared is ready."
+
+      - name: Create SSH Tunnel
+        run: |
+          echo "=============================================================="
+          echo "🔑 YOUR SSH CONNECTION INFO:"
+          echo "=============================================================="
+          echo "Host: (will appear below)"
+          echo "Port: 443"
+          echo "Username: root"
+          echo "Password: 123456"
+          echo "=============================================================="
+          cloudflared tunnel --url ssh://localhost:22 --no-autoupdate
